@@ -494,6 +494,7 @@ name = "editor"
 version = "0.1.0"
 dependencies = [
  "iced",
+ "tokio",
 ]
 
 [[package]]
