@@ -18,6 +18,7 @@ enum Messages {
 
 struct Editor {
     content: text_editor::Content,
+    error: Option<io::ErrorKind>,
 }
 
 impl Application for Editor {
@@ -30,6 +31,7 @@ impl Application for Editor {
         (
             Self {
                 content: text_editor::Content::new(),
+                error: None,
             },
             Command::perform(
                 load_file(format!("{}/src/main.rs", env!("CARGO_MANIFEST_DIR"))),
@@ -47,10 +49,11 @@ impl Application for Editor {
             Messages::Edit(action) => {
                 self.content.edit(action);
             }
-            Messages::FileOpened(result) => {
-                if let Ok(content) = result {
-                    self.content = text_editor::Content::with(&content);
-                }
+            Messages::FileOpened(Ok(content)) => {
+                self.content = text_editor::Content::with(&content);
+            }
+            Messages::FileOpened(Err(err)) => {
+                self.error = Some(err);
             }
         }
 
