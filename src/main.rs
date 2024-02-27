@@ -21,7 +21,7 @@ impl Sandbox for Editor {
 
     fn new() -> Self {
         Self {
-            content: text_editor::Content::new(),
+            content: text_editor::Content::with(include_str!("main.rs")),
         }
     }
 
@@ -41,5 +41,9 @@ impl Sandbox for Editor {
         let input = text_editor(&self.content).on_edit(Messages::Edit);
 
         container(input).padding(10).into()
+    }
+
+    fn theme(&self) -> iced::Theme {
+        iced::Theme::Dark
     }
 }
