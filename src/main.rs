@@ -22,10 +22,12 @@ enum Error {
 
 #[derive(Debug, Clone)]
 enum Messages {
-    Edit(text_editor::Action),
     New,
     Open,
+    Save,
+    Edit(text_editor::Action),
     FileOpened(Result<(PathBuf, Arc<String>), Error>),
+    FileSaved(Result<PathBuf, Error>),
 }
 
 struct Editor {
@@ -57,18 +59,23 @@ impl Application for Editor {
 
     fn update(&mut self, message: Self::Message) -> Command<Messages> {
         match message {
+            Messages::Open => Command::perform(pick_file(), Messages::FileOpened),
             Messages::New => {
                 self.path = None;
                 self.content = text_editor::Content::new();
 
                 Command::none()
             }
-            Messages::Open => Command::perform(pick_file(), Messages::FileOpened),
             Messages::Edit(action) => {
                 self.content.edit(action);
                 self.error = None;
 
                 Command::none()
+            }
+            Messages::Save => {
+                let text = self.content.text();
+
+                Command::perform(save_file(self.path.clone(), text), Messages::FileSaved)
             }
             Messages::FileOpened(Ok((path, content))) => {
                 self.path = Some(path);
@@ -81,13 +88,24 @@ impl Application for Editor {
 
                 Command::none()
             }
+            Messages::FileSaved(Ok(path)) => {
+                self.path = Some(path);
+
+                Command::none()
+            }
+            Messages::FileSaved(Err(err)) => {
+                self.error = Some(err);
+
+                Command::none()
+            }
         }
     }
 
     fn view(&self) -> iced::Element<'_, Self::Message> {
         let controls = row![
             button("New").on_press(Messages::New),
-            button("Open").on_press(Messages::Open)
+            button("Open").on_press(Messages::Open),
+            button("Save").on_press(Messages::Save)
         ];
 
         let input = text_editor(&self.content).on_edit(Messages::Edit);
@@ -141,4 +159,23 @@ async fn load_file(path: PathBuf) -> Result<(PathBuf, Arc<String>), Error> {
         .map_err(Error::IO)?;
 
     Ok((path, content))
+}
+
+async fn save_file(path: Option<PathBuf>, text: String) -> Result<PathBuf, Error> {
+    let path = if let Some(path) = path {
+        path
+    } else {
+        rfd::AsyncFileDialog::new()
+            .set_title("Choose a file name.")
+            .save_file()
+            .await
+            .ok_or(Error::DialogClosed)
+            .map(|handle| handle.path().to_path_buf())?
+    };
+
+    tokio::fs::write(&path, text)
+        .await
+        .map_err(|err| Error::IO(err.kind()))?;
+
+    Ok(path)
 }
