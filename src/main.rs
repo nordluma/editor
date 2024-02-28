@@ -6,7 +6,7 @@ use std::{
 
 use iced::{
     executor,
-    widget::{button, column, container, horizontal_space, row, text, text_editor},
+    widget::{button, column, container, horizontal_space, row, text, text_editor, tooltip},
     Application, Command, Element, Font, Length, Settings, Theme,
 };
 
@@ -108,9 +108,9 @@ impl Application for Editor {
 
     fn view(&self) -> iced::Element<'_, Self::Message> {
         let controls = row![
-            button(new_icon()).on_press(Messages::New),
-            button(open_icon()).on_press(Messages::Open),
-            button(save_icon()).on_press(Messages::Save)
+            action(new_icon(), "Create a new file", Messages::New),
+            action(open_icon(), "Open file", Messages::Open),
+            action(save_icon(), "Save file", Messages::Save)
         ]
         .spacing(10);
 
@@ -141,6 +141,21 @@ impl Application for Editor {
     fn theme(&self) -> iced::Theme {
         iced::Theme::Dark
     }
+}
+
+fn action<'a>(
+    content: Element<'a, Messages>,
+    label: &str,
+    on_press: Messages,
+) -> Element<'a, Messages> {
+    tooltip(
+        button(container(content).width(30).center_x())
+            .on_press(on_press)
+            .padding([5, 10]),
+        label,
+        tooltip::Position::FollowCursor,
+    )
+    .into()
 }
 
 fn new_icon<'a>() -> Element<'a, Messages> {
