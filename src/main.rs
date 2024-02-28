@@ -17,7 +17,7 @@ fn main() -> iced::Result {
 #[derive(Debug, Clone)]
 enum Error {
     DialogClosed,
-    IO(io::ErrorKind),
+    IOFailed(io::ErrorKind),
 }
 
 #[derive(Debug, Clone)]
@@ -110,7 +110,7 @@ impl Application for Editor {
 
         let input = text_editor(&self.content).on_edit(Messages::Edit);
         let status_bar = {
-            let status = if let Some(Error::IO(err)) = self.error.as_ref() {
+            let status = if let Some(Error::IOFailed(err)) = self.error.as_ref() {
                 text(err.to_string())
             } else {
                 match self.path.as_deref().and_then(Path::to_str) {
@@ -156,7 +156,7 @@ async fn load_file(path: PathBuf) -> Result<(PathBuf, Arc<String>), Error> {
         .await
         .map(Arc::new)
         .map_err(|err| err.kind())
-        .map_err(Error::IO)?;
+        .map_err(Error::IOFailed)?;
 
     Ok((path, content))
 }
@@ -175,7 +175,7 @@ async fn save_file(path: Option<PathBuf>, text: String) -> Result<PathBuf, Error
 
     tokio::fs::write(&path, text)
         .await
-        .map_err(|err| Error::IO(err.kind()))?;
+        .map_err(|err| Error::IOFailed(err.kind()))?;
 
     Ok(path)
 }
