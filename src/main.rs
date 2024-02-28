@@ -106,7 +106,8 @@ impl Application for Editor {
             button("New").on_press(Messages::New),
             button("Open").on_press(Messages::Open),
             button("Save").on_press(Messages::Save)
-        ];
+        ]
+        .spacing(10);
 
         let input = text_editor(&self.content).on_edit(Messages::Edit);
         let status_bar = {
