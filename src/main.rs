@@ -12,6 +12,7 @@ use iced::{
 
 fn main() -> iced::Result {
     Editor::run(Settings {
+        default_font: Font::MONOSPACE,
         fonts: vec![include_bytes!("../fonts/editor-icons.ttf")
             .as_slice()
             .into()],
