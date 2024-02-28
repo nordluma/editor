@@ -5,7 +5,7 @@ use std::{
 };
 
 use iced::{
-    executor,
+    executor, theme,
     widget::{button, column, container, horizontal_space, row, text, text_editor, tooltip},
     Application, Command, Element, Font, Length, Settings, Theme,
 };
@@ -155,6 +155,7 @@ fn action<'a>(
         label,
         tooltip::Position::FollowCursor,
     )
+    .style(theme::Container::Box)
     .into()
 }
 
