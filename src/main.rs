@@ -23,6 +23,7 @@ enum Error {
 #[derive(Debug, Clone)]
 enum Messages {
     Edit(text_editor::Action),
+    New,
     Open,
     FileOpened(Result<(PathBuf, Arc<String>), Error>),
 }
@@ -56,6 +57,12 @@ impl Application for Editor {
 
     fn update(&mut self, message: Self::Message) -> Command<Messages> {
         match message {
+            Messages::New => {
+                self.path = None;
+                self.content = text_editor::Content::new();
+
+                Command::none()
+            }
             Messages::Open => Command::perform(pick_file(), Messages::FileOpened),
             Messages::Edit(action) => {
                 self.content.edit(action);
@@ -77,20 +84,29 @@ impl Application for Editor {
     }
 
     fn view(&self) -> iced::Element<'_, Self::Message> {
-        let controls = row![button("Open").on_press(Messages::Open)];
+        let controls = row![
+            button("New").on_press(Messages::New),
+            button("Open").on_press(Messages::Open)
+        ];
+
         let input = text_editor(&self.content).on_edit(Messages::Edit);
+        let status_bar = {
+            let status = if let Some(Error::IO(err)) = self.error.as_ref() {
+                text(err.to_string())
+            } else {
+                match self.path.as_deref().and_then(Path::to_str) {
+                    Some(path) => text(path).size(14),
+                    None => text("New file"),
+                }
+            };
 
-        let file_path = match self.path.as_deref().and_then(Path::to_str) {
-            Some(path) => text(path).size(14),
-            None => text(""),
+            let position = {
+                let (line, column) = self.content.cursor_position();
+                text(format!("{}:{}", line + 1, column + 1))
+            };
+
+            row![status, horizontal_space(Length::Fill), position]
         };
-
-        let position = {
-            let (line, column) = self.content.cursor_position();
-            text(format!("{}:{}", line + 1, column + 1))
-        };
-
-        let status_bar = row![file_path, horizontal_space(Length::Fill), position];
 
         container(column![controls, input, status_bar].spacing(10))
             .padding(10)
