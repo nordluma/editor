@@ -7,11 +7,16 @@ use std::{
 use iced::{
     executor,
     widget::{button, column, container, horizontal_space, row, text, text_editor},
-    Application, Command, Length, Settings, Theme,
+    Application, Command, Element, Font, Length, Settings, Theme,
 };
 
 fn main() -> iced::Result {
-    Editor::run(Settings::default())
+    Editor::run(Settings {
+        fonts: vec![include_bytes!("../fonts/editor-icons.ttf")
+            .as_slice()
+            .into()],
+        ..Settings::default()
+    })
 }
 
 #[derive(Debug, Clone)]
@@ -103,9 +108,9 @@ impl Application for Editor {
 
     fn view(&self) -> iced::Element<'_, Self::Message> {
         let controls = row![
-            button("New").on_press(Messages::New),
-            button("Open").on_press(Messages::Open),
-            button("Save").on_press(Messages::Save)
+            button(new_icon()).on_press(Messages::New),
+            button(open_icon()).on_press(Messages::Open),
+            button(save_icon()).on_press(Messages::Save)
         ]
         .spacing(10);
 
@@ -136,6 +141,24 @@ impl Application for Editor {
     fn theme(&self) -> iced::Theme {
         iced::Theme::Dark
     }
+}
+
+fn new_icon<'a>() -> Element<'a, Messages> {
+    icon('\u{E800}')
+}
+
+fn open_icon<'a>() -> Element<'a, Messages> {
+    icon('\u{E802}')
+}
+
+fn save_icon<'a>() -> Element<'a, Messages> {
+    icon('\u{E801}')
+}
+
+fn icon<'a>(codepoint: char) -> Element<'a, Messages> {
+    const ICON_FONT: Font = Font::with_name("editor-icons");
+
+    text(codepoint).font(ICON_FONT).into()
 }
 
 fn default_file() -> PathBuf {
