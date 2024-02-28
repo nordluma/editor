@@ -66,6 +66,7 @@ impl Application for Editor {
             Messages::Open => Command::perform(pick_file(), Messages::FileOpened),
             Messages::Edit(action) => {
                 self.content.edit(action);
+                self.error = None;
 
                 Command::none()
             }
