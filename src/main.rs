@@ -8,7 +8,9 @@ use iced::{
     executor,
     highlighter::{self, Highlighter},
     theme,
-    widget::{button, column, container, horizontal_space, row, text, text_editor, tooltip},
+    widget::{
+        button, column, container, horizontal_space, pick_list, row, text, text_editor, tooltip,
+    },
     Application, Command, Element, Font, Length, Settings, Theme,
 };
 
@@ -36,9 +38,11 @@ enum Messages {
     Edit(text_editor::Action),
     FileOpened(Result<(PathBuf, Arc<String>), Error>),
     FileSaved(Result<PathBuf, Error>),
+    ThemeSelected(highlighter::Theme),
 }
 
 struct Editor {
+    theme: highlighter::Theme,
     path: Option<PathBuf>,
     content: text_editor::Content,
     error: Option<Error>,
@@ -53,6 +57,7 @@ impl Application for Editor {
     fn new(_flags: Self::Flags) -> (Self, Command<Messages>) {
         (
             Self {
+                theme: highlighter::Theme::SolarizedDark,
                 path: None,
                 content: text_editor::Content::new(),
                 error: None,
@@ -106,6 +111,11 @@ impl Application for Editor {
 
                 Command::none()
             }
+            Messages::ThemeSelected(theme) => {
+                self.theme = theme;
+
+                Command::none()
+            }
         }
     }
 
@@ -113,7 +123,13 @@ impl Application for Editor {
         let controls = row![
             action(new_icon(), "Create a new file", Messages::New),
             action(open_icon(), "Open file", Messages::Open),
-            action(save_icon(), "Save file", Messages::Save)
+            action(save_icon(), "Save file", Messages::Save),
+            horizontal_space(Length::Fill),
+            pick_list(
+                highlighter::Theme::ALL,
+                Some(self.theme),
+                Messages::ThemeSelected
+            )
         ]
         .spacing(10);
 
@@ -121,7 +137,7 @@ impl Application for Editor {
             .on_edit(Messages::Edit)
             .highlight::<Highlighter>(
                 highlighter::Settings {
-                    theme: highlighter::Theme::SolarizedDark,
+                    theme: self.theme,
                     extension: self
                         .path
                         .as_ref()
@@ -155,7 +171,11 @@ impl Application for Editor {
     }
 
     fn theme(&self) -> iced::Theme {
-        iced::Theme::Dark
+        if self.theme.is_dark() {
+            iced::Theme::Dark
+        } else {
+            iced::Theme::Light
+        }
     }
 }
 
