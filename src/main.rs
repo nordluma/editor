@@ -46,6 +46,7 @@ struct Editor {
     path: Option<PathBuf>,
     content: text_editor::Content,
     error: Option<Error>,
+    is_dirty: bool,
 }
 
 impl Application for Editor {
@@ -61,6 +62,7 @@ impl Application for Editor {
                 path: None,
                 content: text_editor::Content::new(),
                 error: None,
+                is_dirty: true,
             },
             Command::perform(load_file(default_file()), Messages::FileOpened),
         )
@@ -74,14 +76,16 @@ impl Application for Editor {
         match message {
             Messages::Open => Command::perform(pick_file(), Messages::FileOpened),
             Messages::New => {
+                self.is_dirty = true;
                 self.path = None;
                 self.content = text_editor::Content::new();
 
                 Command::none()
             }
             Messages::Edit(action) => {
-                self.content.edit(action);
+                self.is_dirty = self.is_dirty || action.is_edit();
                 self.error = None;
+                self.content.edit(action);
 
                 Command::none()
             }
@@ -93,6 +97,7 @@ impl Application for Editor {
             Messages::FileOpened(Ok((path, content))) => {
                 self.path = Some(path);
                 self.content = text_editor::Content::with(&content);
+                self.is_dirty = false;
 
                 Command::none()
             }
@@ -103,6 +108,7 @@ impl Application for Editor {
             }
             Messages::FileSaved(Ok(path)) => {
                 self.path = Some(path);
+                self.is_dirty = false;
 
                 Command::none()
             }
@@ -121,9 +127,13 @@ impl Application for Editor {
 
     fn view(&self) -> iced::Element<'_, Self::Message> {
         let controls = row![
-            action(new_icon(), "Create a new file", Messages::New),
-            action(open_icon(), "Open file", Messages::Open),
-            action(save_icon(), "Save file", Messages::Save),
+            action(new_icon(), "Create a new file", Some(Messages::New)),
+            action(open_icon(), "Open file", Some(Messages::Open)),
+            action(
+                save_icon(),
+                "Save file",
+                self.is_dirty.then_some(Messages::Save)
+            ),
             horizontal_space(Length::Fill),
             pick_list(
                 highlighter::Theme::ALL,
@@ -182,12 +192,19 @@ impl Application for Editor {
 fn action<'a>(
     content: Element<'a, Messages>,
     label: &str,
-    on_press: Messages,
+    on_press: Option<Messages>,
 ) -> Element<'a, Messages> {
+    let is_disabled = on_press.is_none();
+
     tooltip(
         button(container(content).width(30).center_x())
-            .on_press(on_press)
-            .padding([5, 10]),
+            .on_press_maybe(on_press)
+            .padding([5, 10])
+            .style(if is_disabled {
+                theme::Button::Secondary
+            } else {
+                theme::Button::Primary
+            }),
         label,
         tooltip::Position::FollowCursor,
     )
